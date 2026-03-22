@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Verificação de Certificado SOBRASA</title>
+<style>
+body { font-family: Arial, sans-serif; background:#f5f5f5; text-align:center; padding:30px; }
+.container { background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); display:inline-block; min-width:300px; }
+h2 { color:#333; }
+p { margin:5px 0; font-size:16px; }
+.valid { color:green; font-weight:bold; }
+.expired { color:red; font-weight:bold; }
+.warning { color:orange; font-weight:bold; }
+</style>
+</head>
+<body>
+<div class="container" id="resultado">
+<h2>Carregando...</h2>
+</div>
+
+<script>
+// ====== CONFIGURAÇÃO ======
+const sheetCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvN6NDDBEU5YAgXuOeDMwBitf-c14CPMv-U2MfyTuLUEO1mVSDUrMOWglyy5CxhQ/pubhtml?gid=793317621&single=true"; // substitua pelo link da sua planilha
+
+// ====== Função para pegar o parâmetro "id" da URL ======
+function getParam(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+}
+
+// ====== Função para buscar e mostrar o certificado ======
+async function verificarCertificado() {
+    const id = getParam('id');
+    if (!id) {
+        document.getElementById('resultado').innerHTML = "<h2>Nenhum certificado informado ❌</h2>";
+        return;
+    }
+
+    const resp = await fetch(sheetCSV);
+    const text = await resp.text();
+
+    // Converte CSV em array
+    const linhas = text.trim().split("\n");
+    const header = linhas.shift().split(",");
+    let dados = null;
+
+    for (let linha of linhas) {
+        const cols = linha.split(",");
+        if (cols[0] === id) {
+            dados = {};
+            header.forEach((h,i) => { dados[h] = cols[i]; });
+            break;
+        }
+    }
+
+    const div = document.getElementById('resultado');
+    if (dados) {
+        let statusClass = 'valid';
+        let statusText = 'VÁLIDO ✅';
+        if (dados.status === 'EXPIRADO') { statusClass = 'expired'; statusText = 'EXPIRADO ❌'; }
+        if (dados.status === 'VENCE EM BREVE') { statusClass = 'warning'; statusText = 'VENCE EM BREVE ⚠️'; }
+
+        div.innerHTML = `
+            <h2 class="${statusClass}">CERTIFICADO ${statusText}</h2>
+            <p><strong>Aluno:</strong> ${dados.aluno}</p>
+            <p><strong>Curso:</strong> ${dados.curso}</p>
+            <p><strong>Data de emissão:</strong> ${dados.emissao}</p>
+            <p><strong>Validade:</strong> ${dados.validade}</p>
+            <p><strong>Instrutor:</strong> ${dados.instrutor}</p>
+            <p><strong>Escola:</strong> ${dados.escola}</p>
+        `;
+    } else {
+        div.innerHTML = "<h2 class='expired'>CERTIFICADO NÃO CADASTRADO ❌</h2>";
+    }
+}
+
+// ====== Executa a função ======
+verificarCertificado();
+</script>
+</body>
+</html>
