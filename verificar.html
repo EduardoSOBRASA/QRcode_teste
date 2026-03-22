@@ -3,79 +3,216 @@
 <head>
 <meta charset="UTF-8">
 <title>Verificação de Certificado SOBRASA</title>
+
 <style>
-body { font-family: Arial, sans-serif; background:#f5f5f5; text-align:center; padding:30px; }
-.container { background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); display:inline-block; min-width:300px; }
-h2 { color:#333; }
-p { margin:5px 0; font-size:16px; }
+body {
+ font-family: Arial, sans-serif;
+ background:#f5f5f5;
+ text-align:center;
+ padding:30px;
+}
+
+.container {
+ background:#fff;
+ padding:20px;
+ border-radius:10px;
+ box-shadow:0 0 10px rgba(0,0,0,0.1);
+ display:inline-block;
+ min-width:300px;
+}
+
 .valid { color:green; font-weight:bold; }
 .expired { color:red; font-weight:bold; }
 .warning { color:orange; font-weight:bold; }
+
+p { margin:6px 0; }
 </style>
+
 </head>
+
 <body>
+
 <div class="container" id="resultado">
 <h2>Carregando...</h2>
 </div>
 
 <script>
-// ====== CONFIGURAÇÃO ======
-const sheetCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvN6NDDBEU5YAgXuOeDMwBitf-c14CPMv-U2MfyTuLUEO1mVSDUrMOWglyy5CxhQ/pub?output=csv&gid=793317621"; // substitua pelo link da sua planilha
 
-// ====== Função para pegar o parâmetro "id" da URL ======
+// ===== CONFIGURAR AQUI =====
+
+// seu CSV publicado
+const sheetCSV =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vSvN6NDDBEU5YAgXuOeDMwBitf-c14CPMv-U2MfyTuLUEO1mVSDUrMOWglyy5CxhQ/pub?output=csv&gid=793317621";
+
+// nomes EXATOS das colunas
+const colunas = {
+
+numero: "numero certificado",     // exemplo — ajuste
+aluno: "Nome",        // exemplo — ajuste
+emissao: "Data de emissao",   // exemplo — ajuste
+validade: "Validade certificado", // exemplo — ajuste
+status: "Status",     // exemplo — ajuste
+instrutor: "Instrutor",
+escola: "escola SELO OURO",
+
+cursoPRO: "tipo PRO",       // coluna L
+cursoAMADOR: "AMADOR"  // coluna M
+
+};
+
+
+// ===== FUNÇÃO PARA PEGAR ID =====
+
 function getParam(name) {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get(name);
+ const urlParams = new URLSearchParams(window.location.search);
+ return urlParams.get(name);
 }
 
-// ====== Função para buscar e mostrar o certificado ======
+
+// ===== FUNÇÃO PRINCIPAL =====
+
 async function verificarCertificado() {
-    const id = getParam('id');
-    if (!id) {
-        document.getElementById('resultado').innerHTML = "<h2>Nenhum certificado informado ❌</h2>";
-        return;
-    }
 
-    const resp = await fetch(sheetCSV);
-    const text = await resp.text();
+const id = getParam('id');
+const div = document.getElementById('resultado');
 
-    // Converte CSV em array
-    const linhas = text.trim().split("\n");
-    const header = linhas.shift().split(",");
-    let dados = null;
-
-    for (let linha of linhas) {
-        const cols = linha.split(",");
-        if (cols[0] === id) {
-            dados = {};
-            header.forEach((h,i) => { dados[h] = cols[i]; });
-            break;
-        }
-    }
-
-    const div = document.getElementById('resultado');
-    if (dados) {
-        let statusClass = 'valid';
-        let statusText = 'VÁLIDO ✅';
-        if (dados.status === 'EXPIRADO') { statusClass = 'expired'; statusText = 'EXPIRADO ❌'; }
-        if (dados.status === 'VENCE EM BREVE') { statusClass = 'warning'; statusText = 'VENCE EM BREVE ⚠️'; }
-
-        div.innerHTML = `
-            <h2 class="${statusClass}">CERTIFICADO ${statusText}</h2>
-            <p><strong>Aluno:</strong> ${dados.aluno}</p>
-            <p><strong>Curso:</strong> ${dados.curso}</p>
-            <p><strong>Data de emissão:</strong> ${dados.emissao}</p>
-            <p><strong>Validade:</strong> ${dados.validade}</p>
-            <p><strong>Instrutor:</strong> ${dados.instrutor}</p>
-            <p><strong>Escola:</strong> ${dados.escola}</p>
-        `;
-    } else {
-        div.innerHTML = "<h2 class='expired'>CERTIFICADO NÃO CADASTRADO ❌</h2>";
-    }
+if (!id) {
+ div.innerHTML = "<h2>Nenhum certificado informado ❌</h2>";
+ return;
 }
 
-// ====== Executa a função ======
+try {
+
+ const resp = await fetch(sheetCSV);
+ const text = await resp.text();
+
+ let linhas = text.trim().split("\n");
+
+// 🔹 IGNORA AS 2 PRIMEIRAS LINHAS
+linhas = linhas.slice(2);
+
+// agora a primeira linha é o cabeçalho
+const header = linhas.shift().split(",");
+
+let dados = null;
+
+for (let linha of linhas) {
+
+ const cols = linha.split(",");
+
+ const idxNumero =
+ header.indexOf(colunas.numero);
+
+ if (idxNumero === -1) continue;
+
+ const numeroCert =
+ cols[idxNumero].trim();
+
+ if (numeroCert === id) {
+
+ dados = {};
+
+ for (let chave in colunas) {
+
+ const idx =
+ header.indexOf(colunas[chave]);
+
+ dados[chave] =
+ idx !== -1
+ ? cols[idx].trim()
+ : "";
+
+ }
+
+ // 🔹 IDENTIFICAR CURSO PRO ou AMADOR
+
+ let cursoFinal = "";
+
+ if (dados.cursoPRO !== "") {
+ cursoFinal = dados.cursoPRO;
+ }
+
+ if (dados.cursoAMADOR !== "") {
+ cursoFinal = dados.cursoAMADOR;
+ }
+
+ dados.curso = cursoFinal;
+
+ break;
+
+ }
+
+}
+
+if (dados) {
+
+let statusClass = 'valid';
+let statusText = 'VÁLIDO ✅';
+
+const s =
+dados.status.toUpperCase();
+
+if (s === 'EXPIRADO') {
+ statusClass = 'expired';
+ statusText = 'EXPIRADO ❌';
+}
+
+if (s === 'VENCE EM BREVE') {
+ statusClass = 'warning';
+ statusText = 'VENCE EM BREVE ⚠️';
+}
+
+div.innerHTML = `
+
+<h2 class="${statusClass}">
+CERTIFICADO ${statusText}
+</h2>
+
+<p><strong>Aluno:</strong>
+${dados.aluno}</p>
+
+<p><strong>Curso:</strong>
+${dados.curso}</p>
+
+<p><strong>Data de emissão:</strong>
+${dados.emissao}</p>
+
+<p><strong>Validade:</strong>
+${dados.validade}</p>
+
+<p><strong>Instrutor:</strong>
+${dados.instrutor}</p>
+
+<p><strong>Escola:</strong>
+${dados.escola}</p>
+
+`;
+
+}
+
+else {
+
+div.innerHTML =
+"<h2 class='expired'>CERTIFICADO NÃO CADASTRADO ❌</h2>";
+
+}
+
+}
+
+catch (err) {
+
+div.innerHTML =
+"<h2>Erro ao carregar dados ❌</h2>";
+
+console.error(err);
+
+}
+
+}
+
 verificarCertificado();
+
 </script>
+
 </body>
 </html>
