@@ -70,7 +70,14 @@ async function carregarCertificado() {
         const data = parseCSV(csvText);
 
         // Ajuste: remove espaços antes/depois para garantir match
-        const cert = data.find(d => d[colunas.numero] && d[colunas.numero].trim() === idCert.trim());
+       // normaliza espaços e busca o certificado
+data.forEach(d => {
+    Object.keys(d).forEach(k => {
+        if(d[k]) d[k] = d[k].trim(); // remove espaços antes/depois
+    });
+});
+
+const cert = data.find(d => d[colunas.numero] && d[colunas.numero].toString() === idCert.toString());
 
         if (!cert) {
             document.getElementById("resultado").innerHTML = "<h2>Certificado não cadastrado ❌</h2>";
