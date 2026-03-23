@@ -81,7 +81,6 @@ return params.get(nome);
 }
 
 
-// PRINCIPAL
 function carregar(){
 
 const id =
@@ -98,27 +97,49 @@ return;
 }
 
 
-// LER CSV COM PAPAPARSE
+// LER CSV
 Papa.parse(csvUrl, {
 
 download: true,
-
-header: true,
 
 skipEmptyLines: true,
 
 complete: function(results) {
 
-const data = results.data;
+let data = results.data;
+
+
+// REMOVE LINHAS 1 e 2
+data = data.slice(2);
+
+
+// CABEÇALHO (linha 3)
+const header = data.shift();
+
+
+// CONVERTER PARA OBJETOS
+const registros = data.map(row => {
+
+let obj = {};
+
+header.forEach((col, i) => {
+
+obj[col.trim()] =
+row[i] ? row[i].toString().trim() : "";
+
+});
+
+return obj;
+
+});
 
 
 // PROCURAR CERTIFICADO
 const cert =
-data.find(d =>
+registros.find(d =>
 
 d[colunas.numero] &&
-d[colunas.numero].toString().trim()
-=== id.toString().trim()
+d[colunas.numero] === id
 
 );
 
@@ -142,7 +163,7 @@ cert[colunas.cursoPRO]
 : cert[colunas.cursoAMADOR];
 
 
-// MONTAR HTML
+// MONTAR RESULTADO
 let html =
 
 `<h2>CERTIFICADO VÁLIDO ✅</h2>
@@ -166,7 +187,6 @@ ${cert[colunas.instrutor]}</p>
 ${cert[colunas.escola]}</p>`;
 
 
-// MOSTRAR PDF
 if(cert[colunas.pdf]){
 
 html +=
