@@ -69,7 +69,7 @@ async function carregarCertificado() {
         const csvText = await res.text();
         const data = parseCSV(csvText);
 
-        const cert = data.find(d => d[colunas.numero] === idCert);
+      const cert = data.find(d => d[colunas.numero].trim() === idCert.trim());
 
         if (!cert) {
             document.getElementById("resultado").innerHTML = "<h2>Certificado não cadastrado ❌</h2>";
