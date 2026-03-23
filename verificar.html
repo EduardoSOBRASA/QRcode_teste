@@ -7,7 +7,7 @@
 body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
 h1 { color: #0073aa; }
 #resultado { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-a.pdf-btn { background:#0073aa; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; display:inline-block; margin-top:10px; }
+iframe { margin-top: 20px; }
 </style>
 </head>
 <body>
@@ -69,7 +69,8 @@ async function carregarCertificado() {
         const csvText = await res.text();
         const data = parseCSV(csvText);
 
-      const cert = data.find(d => d[colunas.numero].trim() === idCert.trim());
+        // Ajuste: remove espaços antes/depois para garantir match
+        const cert = data.find(d => d[colunas.numero] && d[colunas.numero].trim() === idCert.trim());
 
         if (!cert) {
             document.getElementById("resultado").innerHTML = "<h2>Certificado não cadastrado ❌</h2>";
@@ -88,9 +89,9 @@ async function carregarCertificado() {
         <p><strong>Instrutor:</strong> ${cert[colunas.instrutor]}</p>
         <p><strong>Escola:</strong> ${cert[colunas.escola]}</p>`;
 
-        // Botão PDF
+        // Mostrar PDF diretamente se existir
         if (cert[colunas.pdf]) {
-            html += `<p><a class="pdf-btn" href="${cert[colunas.pdf]}" target="_blank">📄 Ver certificado em PDF</a></p>`;
+            html += `<iframe src="${cert[colunas.pdf]}" width="100%" height="600px" style="border:1px solid #ccc; border-radius:5px;"></iframe>`;
         }
 
         document.getElementById("resultado").innerHTML = html;
