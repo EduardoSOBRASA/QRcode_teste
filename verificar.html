@@ -3,246 +3,105 @@
 <head>
 <meta charset="UTF-8">
 <title>Verificação de Certificado SOBRASA</title>
-
 <style>
-body {
- font-family: Arial, sans-serif;
- background:#f5f5f5;
- text-align:center;
- padding:30px;
-}
-
-.container {
- background:#fff;
- padding:20px;
- border-radius:10px;
- box-shadow:0 0 10px rgba(0,0,0,0.1);
- display:inline-block;
- min-width:300px;
-}
-
-.valid { color:green; font-weight:bold; }
-.expired { color:red; font-weight:bold; }
-.warning { color:orange; font-weight:bold; }
-
-p { margin:6px 0; }
+body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+h1 { color: #0073aa; }
+#resultado { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+a.pdf-btn { background:#0073aa; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; display:inline-block; margin-top:10px; }
 </style>
-
 </head>
-
 <body>
 
-<div class="container" id="resultado">
-<h2>Carregando...</h2>
-</div>
+<h1>Verificação de Certificado SOBRASA</h1>
+<div id="resultado"><p>Carregando...</p></div>
 
 <script>
+// URL do CSV publicado do Google Sheets (formato CSV)
+const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvN6NDDBEU5YAgXuOeDMwBitf-c14CPMv-U2MfyTuLUEO1mVSDUrMOWglyy5CxhQ/pub?output=csv&gid=793317621";
 
-// ===== CONFIGURAR AQUI =====
-
-// seu CSV publicado
-const sheetCSV =
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSvN6NDDBEU5YAgXuOeDMwBitf-c14CPMv-U2MfyTuLUEO1mVSDUrMOWglyy5CxhQ/pub?output=csv&gid=793317621";
-
-// nomes EXATOS das colunas
+// Mapeamento das colunas (nomes exatos do cabeçalho da linha 3 da planilha)
 const colunas = {
-
-numero: "numero certificado",     // exemplo — ajuste
-aluno: "Nome",        // exemplo — ajuste
-emissao: "Data de emissao",   // exemplo — ajuste
-validade: "validade certificado", // exemplo — ajuste
-status: "Status",     // exemplo — ajuste
-instrutor: "Instrutor",
-escola: "escola SELO OURO",
-
-cursoPRO: "tipo PRO",       // coluna L
-cursoAMADOR: "AMADOR"  // coluna M
-
-pdf: "PDF"
-
+    numero: "NUMERO",
+    aluno: "NOME",
+    emissao: "EMISSÃO",
+    validade: "VALIDADE",
+    instrutor: "INSTRUTOR",
+    escola: "ESCOLA",
+    cursoPRO: "PRO",
+    cursoAMADOR: "AMADOR",
+    pdf: "PDF"
 };
 
-
-// ===== FUNÇÃO PARA PEGAR ID =====
-
-function getParam(name) {
- const urlParams = new URLSearchParams(window.location.search);
- return urlParams.get(name);
+// Função para ler parâmetros da URL
+function getParametro(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
 }
 
-
-// ===== FUNÇÃO PRINCIPAL =====
-
-async function verificarCertificado() {
-
-const id = getParam('id');
-const div = document.getElementById('resultado');
-
-if (!id) {
- div.innerHTML = "<h2>Nenhum certificado informado ❌</h2>";
- return;
+// Função para processar CSV robusto (aceita vírgulas internas)
+function parseCSV(text) {
+    const linhas = text.split(/\r?\n/);
+    // Ignorar as duas primeiras linhas (antes do cabeçalho)
+    const dataLinhas = linhas.slice(2);
+    // Cabeçalho
+    const header = dataLinhas.shift().split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/(^"|"$)/g,'').trim());
+    // Mapear cada linha em objeto
+    const data = dataLinhas.map(linha => {
+        const cols = linha.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+        if (!cols) return null;
+        const obj = {};
+        header.forEach((h,i)=>{ obj[h] = cols[i] ? cols[i].replace(/(^"|"$)/g,'').trim() : ""; });
+        return obj;
+    }).filter(x => x!==null);
+    return data;
 }
 
-try {
+// Função principal
+async function carregarCertificado() {
+    const idCert = getParametro("id");
+    if (!idCert) {
+        document.getElementById("resultado").innerHTML = "<h2>Nenhum certificado informado ❌</h2>";
+        return;
+    }
 
- const resp = await fetch(sheetCSV);
- const text = await resp.text();
+    try {
+        const res = await fetch(csvUrl);
+        const csvText = await res.text();
+        const data = parseCSV(csvText);
 
- let linhas = text.trim().split("\n");
+        const cert = data.find(d => d[colunas.numero] === idCert);
 
-// 🔹 IGNORA AS 2 PRIMEIRAS LINHAS
-// ignora as duas primeiras linhas
-linhas = linhas.slice(2);
+        if (!cert) {
+            document.getElementById("resultado").innerHTML = "<h2>Certificado não cadastrado ❌</h2>";
+            return;
+        }
 
-// pega cabeçalho real
-const header = linhas[0].split(",");
+        // Determinar curso
+        const curso = cert[colunas.cursoPRO] ? cert[colunas.cursoPRO] : cert[colunas.cursoAMADOR];
 
-// remove cabeçalho da lista
-linhas = linhas.slice(1);
+        // Montar HTML
+        let html = `<h2>CERTIFICADO VÁLIDO ✅</h2>
+        <p><strong>Número:</strong> ${cert[colunas.numero]}</p>
+        <p><strong>Aluno:</strong> ${cert[colunas.aluno]}</p>
+        <p><strong>Curso:</strong> ${curso}</p>
+        <p><strong>Validade:</strong> ${cert[colunas.validade]}</p>
+        <p><strong>Instrutor:</strong> ${cert[colunas.instrutor]}</p>
+        <p><strong>Escola:</strong> ${cert[colunas.escola]}</p>`;
 
-// segurança extra
-if (!header.includes(colunas.numero)) {
+        // Botão PDF
+        if (cert[colunas.pdf]) {
+            html += `<p><a class="pdf-btn" href="${cert[colunas.pdf]}" target="_blank">📄 Ver certificado em PDF</a></p>`;
+        }
 
- document.getElementById("resultado").innerHTML =
- "<h2>Erro: Cabeçalho não encontrado ❌</h2>";
+        document.getElementById("resultado").innerHTML = html;
 
- return;
-
-};
-
-let dados = null;
-
-for (let linha of linhas) {
-
-const cols = linha.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
-
- const idxNumero =
- header.indexOf(colunas.numero);
-
- if (idxNumero === -1) continue;
-
- const numeroCert =
- cols[idxNumero].trim();
-
- if (numeroCert === id) {
-
- dados = {};
-
- for (let chave in colunas) {
-
- const idx =
- header.indexOf(colunas[chave]);
-
- dados[chave] =
- idx !== -1
- ? cols[idx].trim()
- : "";
-
- }
-
- // 🔹 IDENTIFICAR CURSO PRO ou AMADOR
-
- let cursoFinal = "";
-
- if (dados.cursoPRO !== "") {
- cursoFinal = dados.cursoPRO;
- }
-
- if (dados.cursoAMADOR !== "") {
- cursoFinal = dados.cursoAMADOR;
- }
-
- dados.curso = cursoFinal;
-
- break;
-
- }
-
+    } catch (err) {
+        console.error(err);
+        document.getElementById("resultado").innerHTML = "<h2>Erro ao carregar dados ❌</h2>";
+    }
 }
 
-if (dados) {
-
-let statusClass = 'valid';
-let statusText = 'VÁLIDO ✅';
-
-const s =
-dados.status.toUpperCase();
-
-if (s === 'EXPIRADO') {
- statusClass = 'expired';
- statusText = 'EXPIRADO ❌';
-}
-
-if (s === 'VENCE EM BREVE') {
- statusClass = 'warning';
- statusText = 'VENCE EM BREVE ⚠️';
-}
-
-div.innerHTML = `
-
-<h2 class="${statusClass}">
-CERTIFICADO ${statusText}
-</h2>
-
-<p><strong>Número do Certificado:</strong>
-${dados.numero}</p>
-
-<p><strong>Aluno:</strong>
-${dados.aluno}</p>
-
-<p><strong>Curso:</strong>
-${dados.curso}</p>
-
-<p><strong>Data de emissão:</strong>
-${dados.emissao}</p>
-
-<p><strong>Validade:</strong>
-${dados.validade}</p>
-
-<p><strong>Instrutor:</strong>
-${dados.instrutor}</p>
-
-<p><strong>Escola:</strong>
-${dados.escola}</p>
-
-<p>
-<a href="${dados.pdf}" target="_blank"
-style="background:#0073aa;color:white;
-padding:10px 15px;
-text-decoration:none;
-border-radius:5px;">
-
-📄 Ver certificado em PDF
-
-</a>
-</p>
-
-`;
-
-}
-
-else {
-
-div.innerHTML =
-"<h2 class='expired'>CERTIFICADO NÃO CADASTRADO ❌</h2>";
-
-}
-
-}
-
-catch (err) {
-
-div.innerHTML =
-"<h2>Erro ao carregar dados ❌</h2>";
-
-console.error(err);
-
-}
-
-}
-
-verificarCertificado();
-
+carregarCertificado();
 </script>
 
 </body>
