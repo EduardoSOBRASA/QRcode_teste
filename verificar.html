@@ -114,7 +114,7 @@ let dados = null;
 
 for (let linha of linhas) {
 
- const cols = linha.split(",");
+const cols = linha.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
 
  const idxNumero =
  header.indexOf(colunas.numero);
