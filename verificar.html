@@ -4,8 +4,9 @@
 <head>
 
 <meta charset="UTF-8">
-
 <title>Verificação de Certificado SOBRASA</title>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <style>
 
@@ -40,7 +41,7 @@ Carregando...
 
 <script>
 
-// LINK DO CSV
+// LINK CSV
 const csvUrl =
 "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvN6NDDBEU5YAgXuOeDMwBitf-c14CPMv-U2MfyTuLUEO1mVSDUrMOWglyy5CxhQ/pub?output=csv&gid=793317621";
 
@@ -80,55 +81,8 @@ return params.get(nome);
 }
 
 
-// PROCESSAR CSV
-function parseCSV(text){
-
-const linhas =
-text.split(/\r?\n/);
-
-// ignora 2 primeiras linhas
-const linhasValidas =
-linhas.slice(2);
-
-// cabeçalho
-const header =
-linhasValidas.shift().split(",");
-
-// dados
-const dados = [];
-
-linhasValidas.forEach(linha=>{
-
-if(!linha.trim()) return;
-
-const cols =
-linha.split(",");
-
-let obj = {};
-
-header.forEach((h,i)=>{
-
-obj[h.trim()] =
-cols[i]
-? cols[i].replace(/"/g,"").trim()
-: "";
-
-});
-
-dados.push(obj);
-
-});
-
-return dados;
-
-}
-
-
-
-// FUNÇÃO PRINCIPAL
-async function carregar(){
-
-try{
+// PRINCIPAL
+function carregar(){
 
 const id =
 getParametro("id");
@@ -144,14 +98,18 @@ return;
 }
 
 
-const res =
-await fetch(csvUrl);
+// LER CSV COM PAPAPARSE
+Papa.parse(csvUrl, {
 
-const text =
-await res.text();
+download: true,
 
-const data =
-parseCSV(text);
+header: true,
+
+skipEmptyLines: true,
+
+complete: function(results) {
+
+const data = results.data;
 
 
 // PROCURAR CERTIFICADO
@@ -159,7 +117,8 @@ const cert =
 data.find(d =>
 
 d[colunas.numero] &&
-d[colunas.numero].trim() === id.trim()
+d[colunas.numero].toString().trim()
+=== id.toString().trim()
 
 );
 
@@ -183,7 +142,7 @@ cert[colunas.cursoPRO]
 : cert[colunas.cursoAMADOR];
 
 
-// MONTAR RESULTADO
+// MONTAR HTML
 let html =
 
 `<h2>CERTIFICADO VÁLIDO ✅</h2>
@@ -227,15 +186,7 @@ document.getElementById("resultado")
 
 }
 
-catch(error){
-
-console.error(error);
-
-document.getElementById("resultado")
-.innerHTML =
-"<h2>Erro ao carregar dados ❌</h2>";
-
-}
+});
 
 }
 
