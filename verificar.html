@@ -91,7 +91,24 @@ try {
  let linhas = text.trim().split("\n");
 
 // 🔹 IGNORA AS 2 PRIMEIRAS LINHAS
+// ignora as duas primeiras linhas
 linhas = linhas.slice(2);
+
+// pega cabeçalho real
+const header = linhas[0].split(",");
+
+// remove cabeçalho da lista
+linhas = linhas.slice(1);
+
+// segurança extra
+if (!header.includes(colunas.numero)) {
+
+ document.getElementById("resultado").innerHTML =
+ "<h2>Erro: Cabeçalho não encontrado ❌</h2>";
+
+ return;
+
+};
 
 // agora a primeira linha é o cabeçalho
 const header = linhas.shift().split(",");
