@@ -46,7 +46,7 @@ const csvUrl =
 "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvN6NDDBEU5YAgXuOeDMwBitf-c14CPMv-U2MfyTuLUEO1mVSDUrMOWglyy5CxhQ/pub?output=csv&gid=793317621";
 
 
-// NOMES DAS COLUNAS
+// COLUNAS
 const colunas = {
 
 numero: "numero certificado",
@@ -99,7 +99,6 @@ return;
 }
 
 
-// LER CSV
 Papa.parse(csvUrl, {
 
 download: true,
@@ -111,15 +110,15 @@ complete: function(results) {
 let data = results.data;
 
 
-// REMOVE LINHAS 1 e 2
+// remover linhas 1 e 2
 data = data.slice(2);
 
 
-// CABEÇALHO (linha 3)
+// linha 3 = cabeçalho
 const header = data.shift();
 
 
-// CONVERTER PARA OBJETOS
+// converter para objetos
 const registros = data.map(row => {
 
 let obj = {};
@@ -136,12 +135,13 @@ return obj;
 });
 
 
-// PROCURAR CERTIFICADO
+// procurar certificado
 const cert =
 registros.find(d =>
 
 d[colunas.numero] &&
-d[colunas.numero] === id
+d[colunas.numero].toString().trim()
+=== id.toString().trim()
 
 );
 
@@ -157,7 +157,7 @@ return;
 }
 
 
-// DEFINIR CURSO
+// CURSO
 const curso =
 
 cert[colunas.cursoPRO]
@@ -165,26 +165,29 @@ cert[colunas.cursoPRO]
 : cert[colunas.cursoAMADOR];
 
 
-// MONTAR RESULTADO
-let html =
+// STATUS
+let statusTexto =
+cert[colunas.status] || "VÁLIDO";
 
-`let statusTexto =
-cert[colunas.status] || "Status não informado";
+statusTexto =
+statusTexto.toUpperCase();
 
-let corStatus = "#2ecc71"; // verde padrão
+let corStatus = "#2ecc71"; // verde
 
-if(statusTexto === "EXPIRADO") {
+if(statusTexto.includes("EXPIRADO")) {
 
 corStatus = "#e74c3c";
 
 }
 
-if(statusTexto === "PRÓXIMO A VENCER") {
+if(statusTexto.includes("PRÓXIMO")) {
 
 corStatus = "#f39c12";
 
 }
 
+
+// HTML
 let html =
 
 `<h2 style="
@@ -194,9 +197,9 @@ padding:10px;
 border-radius:6px;
 ">
 
-CERTIFICADO ${statusTexto.toUpperCase()} 
+CERTIFICADO ${statusTexto}
 
-</h2>`;
+</h2>
 
 <p><strong>Número:</strong>
 ${cert[colunas.numero]}</p>
