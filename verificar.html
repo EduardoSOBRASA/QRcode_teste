@@ -65,6 +65,8 @@ cursoPRO: "tipo PRO",
 
 cursoAMADOR: "AMADOR",
 
+status: "Status",
+
 pdf: "PDF"
 
 };
@@ -166,7 +168,35 @@ cert[colunas.cursoPRO]
 // MONTAR RESULTADO
 let html =
 
-`<h2>CERTIFICADO VÁLIDO ✅</h2>
+`let statusTexto =
+cert[colunas.status] || "Status não informado";
+
+let corStatus = "#2ecc71"; // verde padrão
+
+if(statusTexto === "EXPIRADO") {
+
+corStatus = "#e74c3c";
+
+}
+
+if(statusTexto === "PRÓXIMO A VENCER") {
+
+corStatus = "#f39c12";
+
+}
+
+let html =
+
+`<h2 style="
+background:${corStatus};
+color:white;
+padding:10px;
+border-radius:6px;
+">
+
+CERTIFICADO ${statusTexto.toUpperCase()} 
+
+</h2>`;
 
 <p><strong>Número:</strong>
 ${cert[colunas.numero]}</p>
