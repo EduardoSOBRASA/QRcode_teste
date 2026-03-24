@@ -180,12 +180,14 @@ corStatus = "#e74c3c";
 
 }
 
-if(statusTexto.includes("PRÓXIMO")) {
+if(
+statusTexto.includes("PRÓXIMO") ||
+statusTexto.includes("VENCE")
+) {
 
 corStatus = "#f39c12";
 
 }
-
 
 // HTML
 let html =
